@@ -1,0 +1,318 @@
+/**
+ * COS30002 Master UI Template Styles
+ * Standardises layouts, fonts, spacings, and colors for all Svelte sub-tools.
+ */
+
+:root {
+  /* Global Color Palette */
+  --bg-primary: #f8fafc;        /* Canvas overlay background, code block inverts */
+  --bg-secondary: #ffffff;      /* Sidebar and panel background */
+  --text-primary: #0f172a;      /* Strong bolded text and main body text */
+  --text-secondary: #475569;    /* Paragraphs and secondary information */
+  --accent: #2563eb;            /* Main blue accent for interactive elements and H1 */
+  --panel-border: #e2e8f0;      /* Dividers, borders, HRs */
+  --glass-bg: rgba(255,255,255,0.85);
+}
+
+/* Base resets mapped exactly to Svelte root styles */
+body {
+  margin: 0; padding: 0;
+  background-color: var(--bg-primary); color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ========================================================================= */
+/* LAYOUT SKELETON                                                           */
+/* ========================================================================= */
+
+.app-layout {
+  display: flex; height: 100vh; width: 100vw; overflow: hidden;
+}
+
+.sidebar-left, .sidebar-right {
+  width: 25%; flex-shrink: 0;
+  background-color: var(--bg-secondary);
+  display: flex; flex-direction: column;
+  z-index: 100; overflow: hidden;
+}
+
+.sidebar-left { border-right: 1px solid var(--panel-border); box-shadow: 1px 0 10px rgba(0,0,0,0.05); }
+.sidebar-right { border-left: 1px solid var(--panel-border); box-shadow: -1px 0 10px rgba(0,0,0,0.05); }
+
+.sidebar-inner { flex: 1; overflow-y: auto; padding: 1.25rem; }
+
+.app-footer {
+  padding: 1rem; font-size: 0.70rem; color: var(--text-secondary);
+  text-align: center; border-top: 1px solid var(--panel-border); background: var(--bg-primary);
+}
+
+.canvas-panel {
+  flex: 1; position: relative; background-color: #f1f5f9; overflow: hidden; min-width: 0;
+}
+
+/* ========================================================================= */
+/* TEXT TYPOGRAPHY                                                           */
+/* ========================================================================= */
+
+.sidebar-content header { margin-bottom: 2rem; }
+
+h1 {
+  font-size: 1.8rem;
+  color: var(--accent);
+  margin: 0;
+  font-weight: 800;
+}
+
+.tagline {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0.2rem 0;
+}
+
+.md-body {
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.md-body h2 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 2rem 0 1rem 0;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 0.5rem;
+}
+
+.md-body h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+.md-body p { margin-bottom: 1rem; }
+.md-body p strong { color: var(--text-primary); font-weight: 600; }
+
+ul { padding-left: 1.2rem; margin: 1rem 0; }
+li { margin-bottom: 0.6rem; font-size: 0.9rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ========================================================================= */
+/* FORMULA AND CODE BLOCKS                                                   */
+/* ========================================================================= */
+
+.formula-block {
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  font-family: monospace;
+  color: var(--accent);
+  border: 1px solid var(--panel-border);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.formula-desc {
+  list-style: none;
+  margin: 0.4rem 0 0.8rem 0;
+  padding-left: 0.3rem;
+  border-left: 2px solid var(--panel-border);
+}
+
+.formula-desc li {
+  margin-bottom: 0.35rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.formula-desc li strong {
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  background: var(--bg-primary);
+  padding: 0.1rem 0.2rem;
+  border-radius: 3px;
+  border: 1px solid var(--panel-border);
+}
+
+/* ========================================================================= */
+/* RULE CARDS (Algorithm Focus Cards)                                        */
+/* ========================================================================= */
+
+.rule-card {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 10px;
+  border-left: 3px solid;
+  margin: 0.3rem 0;
+}
+
+.rule-icon {
+  font-size: 1.3rem;
+  font-weight: 800;
+  min-width: 26px;
+  text-align: center;
+  padding-top: 1px;
+}
+
+.rule-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rule-body h3 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.rule-body p {
+  font-size: 0.82rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.45;
+}
+
+/* Color Mappings */
+.card-blue { background: rgba(59,130,246,0.05); border-color: #3b82f6; }
+.card-green { background: rgba(16,185,129,0.05); border-color: #10b981; }
+.card-purple { background: rgba(139,92,246,0.05); border-color: #8b5cf6; }
+.card-orange { background: rgba(245,158,11,0.05); border-color: #f59e0b; }
+.card-red { background: rgba(239,68,68,0.05); border-color: #ef4444; }
+
+.icon-blue { color: #3b82f6; }
+.icon-green { color: #10b981; }
+.icon-purple { color: #8b5cf6; }
+.icon-orange { color: #f59e0b; }
+.icon-red { color: #ef4444; }
+
+.color-blue { color: #3b82f6; }
+.color-green { color: #10b981; }
+.color-purple { color: #8b5cf6; }
+.color-orange { color: #f59e0b; }
+.color-red { color: #ef4444; }
+
+/* ========================================================================= */
+/* GAME EXAMPLE COMPONENTS                                                   */
+/* ========================================================================= */
+
+.game-cases article {
+  margin-top: 1rem;
+  border-left: 2px solid var(--accent);
+  padding: 0.8rem;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 1rem;
+}
+
+.game-cases h4 {
+  margin: 0 0 0.4rem 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.game-cases p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+/* ========================================================================= */
+/* CONTROLS & RIGHT SIDEBAR PANEL                                            */
+/* ========================================================================= */
+
+.controls-panel { display: flex; flex-direction: column; gap: 0.7rem; }
+
+.section-header { display: flex; justify-content: space-between; align-items: center; margin: 0.4rem 0 0.2rem 0; }
+.section-header h3 {
+  font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;
+  letter-spacing: 1.2px; margin: 0; font-weight: 700;
+}
+
+.glossary-btn {
+  background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--accent); width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+  font-weight: 800; cursor: pointer; transition: all 0.2s;
+}
+.glossary-btn:hover { background: var(--accent); color: white; }
+
+/* Control Groups & Sliders */
+.control-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.label-row { display: flex; justify-content: space-between; font-size: 0.78rem; align-items: center; }
+.label-row span { font-family: monospace; font-weight: 700; color: var(--accent); width: 36px; text-align: right; font-size: 0.75rem; }
+.hint { font-size: 0.62rem; color: var(--text-secondary); margin: 0; opacity: 0.65; }
+
+input[type="range"] { appearance: none; background: var(--panel-border); height: 4px; border-radius: 2px; width: 100%; cursor: pointer; }
+input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+
+/* General Action Buttons */
+.action-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.clear-btn {
+  flex: 1; padding: 0.4rem 0.5rem; border-radius: 6px; font-size: 0.68rem; font-weight: 700;
+  border: 1px solid rgba(100,116,139,0.4); background: rgba(100,116,139,0.08);
+  color: #64748b; cursor: pointer; transition: all 0.15s;
+}
+.clear-btn:hover { background: rgba(100,116,139,0.2); }
+
+.reset-btn {
+  width: 100%; padding: 0.65rem; border-radius: 6px;
+  border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.07); color: #ef4444;
+  font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+}
+.reset-btn:hover { background: rgba(239,68,68,0.15); }
+
+/* Toggle Switches/Checkboxes */
+.toggle-row { display: flex; align-items: center; }
+.toggle-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;
+}
+.toggle-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+/* ========================================================================= */
+/* GLOSSARY OVERLAY MODAL                                                    */
+/* ========================================================================= */
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--bg-secondary); border: 1px solid var(--panel-border);
+  border-radius: 12px; width: 800px; max-width: 90%; height: 600px;
+  box-shadow: 0 10px 50px rgba(0,0,0,0.1); display: flex; overflow: hidden;
+}
+
+.toc {
+  width: 220px; background: var(--bg-primary); border-right: 1px solid var(--panel-border);
+  padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
+}
+.toc h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin: 0; }
+.toc ul { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+.toc button {
+  background: none; border: none; font-size: 0.82rem; color: var(--text-secondary);
+  padding: 0.4rem 0; cursor: pointer; display: block; text-align: left; width: 100%; transition: color 0.2s;
+}
+.toc button:hover, .toc button.active { color: var(--accent); font-weight: 600; }
+
+.close-main-btn {
+  background: var(--bg-secondary); border: 1px solid var(--panel-border); padding: 0.6rem;
+  border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; color: var(--text-secondary);
+}
+
+.content-view { flex: 1; padding: 2rem; overflow-y: auto; scroll-behavior: smooth; }
+.content-view section { margin-bottom: 3rem; scroll-margin-top: 2rem; }
+.content-view h2 { font-size: 1.5rem; color: var(--text-primary); margin-bottom: 1rem; }
+.content-view p { line-height: 1.6; color: var(--text-secondary); font-size: 1rem; }
+.content-view hr { border: 0; border-top: 1px solid var(--panel-border); margin: 2rem 0; }
+.footer-note { font-style: italic; font-size: 0.85rem; color: var(--accent); opacity: 0.8; margin-top: 2rem; }
