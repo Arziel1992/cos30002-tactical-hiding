@@ -14,15 +14,27 @@ Interactive educational simulation demonstrating tactical hiding behaviors, line
 ## 📐 Mathematical Models
 
 ### Hiding Spot Calculation
-$$P_{spot} = P_{obs} + \vec{n}_{h \to o} \times (r_{obs} + r_{agent} + k_{clear})$$
+
+$$
+P_{spot} = P_{obs} + n_{h\_to\_o} \times (r_{obs} + r_{agent} + k_{clear})
+$$
+
 Calculates the optimal coordinate behind an obstacle by projecting along the normal vector from the hunter to the obstacle center, adjusted for physical radii and safety clearance.
 
 ### Tactical Dot-Product Penalty
-$$D_{biased} = D_{agent \to spot} \times (1 + \max(0, \vec{v}_{h \to spot} \cdot \vec{v}_{h_{heading}}) \times w_{penalty})$$
+
+$$
+D_{biased} = D_{agent\_to\_spot} \times (1 + \max(0, v_{h\_to\_spot} \cdot v_{h\_heading}) \times w_{penalty})
+$$
+
 Penalizes hiding spots that are directly in the hunter's field of view. This biasing ensures agents prioritize spots that are tactically sound rather than just geographically close.
 
 ### Line of Sight (LoS) Occlusion
-$$dist(P_{obs}, \overline{P_{observer}P_{target}}) < r_{obs}$$
+
+$$
+dist(P_{obs}, \text{segment}(P_{obs}, P_{target})) < r_{obs}
+$$
+
 A segment-to-point distance test used to determine if an obstacle intersects the vision ray between two entities, enabling realistic sensory occlusion.
 
 ## 💻 Tech Stack
