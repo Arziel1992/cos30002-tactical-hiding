@@ -8,48 +8,43 @@ let {
 const entries = [
 	{
 		id: "root",
-		title: "Glossary: Obstacle Avoidance",
-		body: "Reynolds' local-space obstacle avoidance transforms the world into the agent's own coordinate frame, enabling O(N) per-obstacle intersection tests and trivial culling of obstacles behind the agent. The five-phase algorithm is the foundation of autonomous vehicle and character navigation in nearly every modern game engine.",
+		title: "Glossary: Tactical Hiding",
+		body: "Tactical hiding is an advanced steering behavior where an agent positions itself behind obstacles relative to a threat (Hunter). This tool implements geometric hiding spot calculation combined with dot-product cognitive biasing to avoid spots that are directly in the hunter's forward line of sight.",
 	},
 	{
 		id: "interaction",
 		title: "Canvas Modes",
-		body: "Observe mode: watch the agent wander and avoid. Place Obstacle: click to add a circular blocker; click an existing obstacle to remove it. Place Target: click to set a seek destination; avoidance forces still apply while seeking. Click the target marker again to remove it.",
+		body: "Observe: Watch the simulation. Add Agent/Hunter: Click to place new entities. Place Obstacle: Click to add blockers (click existing to remove). Place Hunter Target: Click to set a destination for hunters to seek when they lose sight of agents.",
 	},
 	{
-		id: "physics",
-		title: "Agent Physics",
-		body: "Max Speed caps the velocity vector length in pixels per second. Max Force caps the steering force magnitude applied each frame, acting as the agent's inertia or turn rate. Lower Max Force produces wide, sluggish curves; higher values produce sharp responsive turns.",
+		id: "vision",
+		title: "Vision & Senses",
+		body: "Agents and Hunters have limited Vision Radii. A Hunter only pursues an Agent if it is within this radius and there is a clear Line of Sight (not occluded by obstacles). If a Hunter loses sight, it remembers the agent's last known position for a short duration (Memory Buffer) before returning to wander.",
 	},
 	{
-		id: "box",
-		title: "Detection Box",
-		body: "A rectangle projected ahead of the agent in its local coordinate frame. Its width equals twice the agent's bounding radius plus a small margin. Its length (tuneable) determines the lookahead distance. Only obstacles that overlap this box are considered in the avoidance computation.",
+		id: "hiding",
+		title: "Hiding Spot Logic",
+		body: "The simulation projects a safe 'shadow' behind every obstacle. The exact position is calculated by finding the vector from the Hunter to the obstacle and extending it by the obstacle's radius plus a 'Hiding Clearance'.",
 	},
 	{
-		id: "forces",
-		title: "Avoidance Force Components",
-		body: "The algorithm generates two orthogonal forces in local space: Braking (−X) decelerates the agent as the obstacle approaches along the forward axis; Lateral (±Y) steers the agent sideways away from the obstacle's centre. These are then rotated back to world space via inverse dot-product projection.",
+		id: "penalty",
+		title: "Tactical Penalty",
+		body: "A cognitive bias applied to hiding spots. If a potential spot lies directly ahead of the Hunter's current velocity (high dot product), it is heavily penalised. This forces agents to choose 'smarter' hiding spots that are not only behind an obstacle but also out of the hunter's projected path.",
+	},
+	{
+		id: "avoidance",
+		title: "Obstacle Avoidance",
+		body: "In addition to hiding, agents use Reynolds' obstacle avoidance to steer around blockers. This prevents the agent from running directly into the obstacle it is trying to hide behind.",
 	},
 	{
 		id: "weights",
 		title: "Behaviour Weights",
-		body: "All steering forces (avoidance, seek, wander) are scaled by their weight before summation. A high Avoidance weight means the agent will swerve hard and early. A high Seek weight pulls the agent strongly toward a target. When weights conflict, the agent steers along the resultant vector.",
+		body: "Weights determine the priority of steering forces. This simulation uses a weighted sum: Tactical Hiding (adjustable, default 3.0), Wander (adjustable, default 1.0), and a prioritized Obstacle Avoidance (fixed at 10.0 for agents and 15.0 for hunters) to ensure collision safety takes precedence over hiding.",
 	},
 	{
 		id: "visuals",
 		title: "Visualisation Overlays",
-		body: "Trail shows the agent's path history. Detection Box draws the forward rectangle — it turns red when a threat is detected. Local Axes shows the heading (+X, blue) and side (+Y, green) vectors at the agent's current position. Force Vectors renders the braking (red), lateral (purple), and world-space resultant (orange) steering arrows.",
-	},
-	{
-		id: "localspace",
-		title: "Local Space Transformation",
-		body: "A change-of-basis operation that makes the agent the coordinate origin (0,0), with its forward heading as the +X axis and its perpendicular-left vector as the +Y axis. Every point is re-expressed via two dot products against heading and side. This collapses 2D intersection math into trivial one-dimensional comparisons.",
-	},
-	{
-		id: "bounding",
-		title: "Bounding Radius",
-		body: "The circular approximation of the agent's body. During Phase 3, this is added to each obstacle's radius, inflating the obstacle into an expanded circle. The agent is then treated as a dimensionless point — simplifying the geometric intersection from an area test to a point-distance test.",
+		body: "Hiding Spots: Projected coordinates behind obstacles (green is best). Sightlines: Dashed lines showing active Line of Sight. Vision Radii: Circular bounds within which entities can 'see' each other. Trail: Shows entity path history.",
 	},
 ];
 

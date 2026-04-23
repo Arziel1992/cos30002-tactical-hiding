@@ -21,6 +21,8 @@
         showTrail: false,
         torusMode: true,
         realisticHiding: false,
+        agentVisionRadius: 400,
+        hunterVisionRadius: 400,
     });
 
     let telemetry = $state({
@@ -35,6 +37,8 @@
     let showTrail = $state(false);
     let showHidingSpots = $state(true);
     let showSightlines = $state(true);
+    let showHunterVision = $state(false);
+    let showAgentVision = $state(false);
     let interactionMode = $state('select');
 
     let containerRef = $state();
@@ -67,6 +71,10 @@
     }
     function handleClearTarget() {
         simulation.clearTarget();
+    }
+    function handleClearEntities() {
+        simulation.agents = [];
+        simulation.hunters = [];
     }
 
     function handleKeydown(e) {
@@ -146,6 +154,8 @@
             bind:showTrail
             bind:showHidingSpots
             bind:showSightlines
+            bind:showHunterVision
+            bind:showAgentVision
             bind:interactionMode
         />
 
@@ -161,8 +171,9 @@
                 Target mode &mdash; click to place / click again to remove
                 &nbsp; [Esc] to exit
             {:else}
-                [T] Trail &nbsp;&middot;&nbsp; [S] Spots &nbsp;&middot;&nbsp; [V]
-                Sightlines &nbsp;&middot;&nbsp; [R] Reset &nbsp;&middot;&nbsp; [O] Obstacle &nbsp;&middot;&nbsp; [G]
+                [T] Trail &nbsp;&middot;&nbsp; [S] Spots &nbsp;&middot;&nbsp;
+                [V] Sightlines &nbsp;&middot;&nbsp; [R] Reset
+                &nbsp;&middot;&nbsp; [O] Obstacle &nbsp;&middot;&nbsp; [G]
                 Target
             {/if}
         </div>
@@ -176,11 +187,14 @@
                     bind:showTrail
                     bind:showHidingSpots
                     bind:showSightlines
+                    bind:showHunterVision
+                    bind:showAgentVision
                     bind:interactionMode
                     onReset={handleReset}
                     onGlossary={openGlossary}
                     onClearObstacles={handleClearObstacles}
                     onClearTarget={handleClearTarget}
+                    onClearEntities={handleClearEntities}
                     {obstacleCount}
                     {hasTarget}
                 />
@@ -190,7 +204,7 @@
             <div class="app-footer">
                 &copy; E. Ketterer Ortiz &mdash;
                 <a
-                    href="https://github.com/Arziel1992/cos30002-obstacle-avoidance/"
+                    href="https://github.com/Arziel1992/cos30002-tactical-hiding/"
                     target="_blank"
                     rel="noopener noreferrer"
                     style="color: var(--accent); text-decoration: none; font-weight: 600;"

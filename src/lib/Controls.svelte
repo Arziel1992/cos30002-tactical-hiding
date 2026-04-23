@@ -4,11 +4,14 @@ let {
 	showTrail = $bindable(),
 	showHidingSpots = $bindable(),
 	showSightlines = $bindable(),
+	showHunterVision = $bindable(),
+	showAgentVision = $bindable(),
 	interactionMode = $bindable(),
 	onReset = () => {},
 	onGlossary = () => {},
 	onClearObstacles = () => {},
 	onClearTarget = () => {},
+	onClearEntities = () => {},
 	obstacleCount = 0,
 	hasTarget = false,
 } = $props();
@@ -28,6 +31,20 @@ let {
       onclick={() => interactionMode = 'select'}
       aria-pressed={interactionMode === 'select'}
     >Observe</button>
+    <button
+      class="mode-btn"
+      class:mode-active={interactionMode === 'agent'}
+      onclick={() => interactionMode = 'agent'}
+      aria-pressed={interactionMode === 'agent'}
+    >Add Agent</button>
+    <button
+      class="mode-btn hunter-mode"
+      class:mode-active={interactionMode === 'hunter'}
+      onclick={() => interactionMode = 'hunter'}
+      aria-pressed={interactionMode === 'hunter'}
+    >Add Hunter</button>
+  </div>
+  <div class="mode-row" style="margin-top: 0.3rem;">
     <button
       class="mode-btn obstacle-mode"
       class:mode-active={interactionMode === 'obstacle'}
@@ -64,6 +81,9 @@ let {
       Clear Hunter Target
     </button>
     {/if}
+    <button class="clear-btn" onclick={onClearEntities}>
+      Clear Entities
+    </button>
   </div>
 
   <hr />
@@ -135,6 +155,30 @@ let {
 
   <hr />
 
+  <!-- ── Vision & Senses ── -->
+  <header class="section-header">
+    <h3>Vision & Senses</h3>
+    <button class="glossary-btn" onclick={() => onGlossary('vision')} aria-label="Open glossary for vision and senses">?</button>
+  </header>
+
+  <div class="control-group">
+    <div class="label-row">
+      <label for="agent-vision" style="color: #3b82f6;">Agent Vision Radius</label>
+      <span style="color: #3b82f6;">{params.agentVisionRadius}</span>
+    </div>
+    <input id="agent-vision" type="range" min="50" max="1000" step="10" bind:value={params.agentVisionRadius} style="accent-color: #3b82f6;">
+  </div>
+
+  <div class="control-group">
+    <div class="label-row">
+      <label for="hunter-vision" style="color: #ef4444;">Hunter Vision Radius</label>
+      <span style="color: #ef4444;">{params.hunterVisionRadius}</span>
+    </div>
+    <input id="hunter-vision" type="range" min="50" max="1000" step="10" bind:value={params.hunterVisionRadius} style="accent-color: #ef4444;">
+  </div>
+
+  <hr />
+
   <!-- ── Behaviour Weights ── -->
   <header class="section-header">
     <h3>Behaviour Weights</h3>
@@ -189,6 +233,18 @@ let {
       Show Hunter Sightlines
     </label>
   </div>
+  <div class="toggle-row">
+    <label class="toggle-label" for="chk-hunter-vision" style="color: #ef4444;">
+      <input type="checkbox" id="chk-hunter-vision" bind:checked={showHunterVision} style="accent-color: #ef4444;">
+      Show Hunter Vision
+    </label>
+  </div>
+  <div class="toggle-row">
+    <label class="toggle-label" for="chk-agent-vision" style="color: #3b82f6;">
+      <input type="checkbox" id="chk-agent-vision" bind:checked={showAgentVision} style="accent-color: #3b82f6;">
+      Show Agent Vision
+    </label>
+  </div>
 
   <hr />
 
@@ -207,6 +263,7 @@ let {
   .mode-btn.mode-active { background: var(--accent); color: white; border-color: var(--accent); }
   .mode-btn.obstacle-mode.mode-active { background: #64748b; border-color: #64748b; }
   .mode-btn.target-mode.mode-active { background: #ca8a04; border-color: #ca8a04; }
+  .mode-btn.hunter-mode.mode-active { background: #ef4444; border-color: #ef4444; }
 
   .clear-btn.target-clear { border-color: rgba(202,138,4,0.4); background: rgba(202,138,4,0.08); color: #ca8a04; }
   .clear-btn.target-clear:hover { background: rgba(202,138,4,0.2); }

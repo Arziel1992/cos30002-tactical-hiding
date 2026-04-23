@@ -1,6 +1,6 @@
 <script>
 import { onMount } from "svelte";
-import { magnitude } from "./Simulation.js";
+import { magnitude, hasLineOfSight } from "./Simulation.js";
 
 let {
 	simulation,
@@ -9,6 +9,8 @@ let {
 	showTrail = $bindable(),
 	showHidingSpots = $bindable(),
 	showSightlines = $bindable(),
+	showHunterVision = $bindable(),
+	showAgentVision = $bindable(),
 	interactionMode = $bindable(),
 } = $props();
 
@@ -91,6 +93,10 @@ function handleClick(e) {
 		} else {
 			simulation.setTarget(x, y);
 		}
+	} else if (interactionMode === "agent") {
+		simulation.addAgent(x, y);
+	} else if (interactionMode === "hunter") {
+		simulation.addHunter(x, y);
 	}
 }
 
@@ -180,75 +186,109 @@ function drawHunterTarget() {
 }
 
 function drawHunter() {
-	const hunter = simulation.hunter;
-	if (!hunter) return;
-	const { x, y } = hunter.position;
-	const spd = magnitude(hunter.velocity);
-	const ang = spd > 0.5 ? Math.atan2(hunter.velocity.y, hunter.velocity.x) : 0;
-	const r = hunter.boundingRadius;
+	if (!simulation.hunters || simulation.hunters.length === 0) return;
+	for (const hunter of simulation.hunters) {
+		const { x, y } = hunter.position;
+		const spd = magnitude(hunter.velocity);
+		const ang = spd > 0.5 ? Math.atan2(hunter.velocity.y, hunter.velocity.x) : 0;
+		const r = hunter.boundingRadius;
 
-	// Glow
-	ctx.beginPath();
-	ctx.arc(x, y, r + 6, 0, Math.PI * 2);
-	ctx.fillStyle = C.hunterGlow;
-	ctx.fill();
+		// Glow
+		ctx.beginPath();
+		ctx.arc(x, y, r + 6, 0, Math.PI * 2);
+		ctx.fillStyle = C.hunterGlow;
+		ctx.fill();
 
-	// Body (triangle facing heading)
-	ctx.save();
-	ctx.translate(x, y);
-	ctx.rotate(ang);
-	ctx.beginPath();
-	ctx.moveTo(r, 0);
-	ctx.lineTo(-r, r * 0.6);
-	ctx.lineTo(-r * 0.5, 0);
-	ctx.lineTo(-r, -r * 0.6);
-	ctx.closePath();
-	ctx.fillStyle = C.hunterFill;
-	ctx.strokeStyle = C.hunterBorder;
-	ctx.lineWidth = 2;
-	ctx.fill();
-	ctx.stroke();
-	ctx.restore();
+		// Body (triangle facing heading)
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.rotate(ang);
+		ctx.beginPath();
+		ctx.moveTo(r, 0);
+		ctx.lineTo(-r, r * 0.6);
+		ctx.lineTo(-r * 0.5, 0);
+		ctx.lineTo(-r, -r * 0.6);
+		ctx.closePath();
+		ctx.fillStyle = C.hunterFill;
+		ctx.strokeStyle = C.hunterBorder;
+		ctx.lineWidth = 2;
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
+	}
 }
 
 function drawHidingSpots() {
-	const agent = simulation.agent;
-	if (!agent || !agent.debugAvoidance || !agent.debugAvoidance.debugSpots) return;
-	const { debugSpots, bestHidingSpot } = agent.debugAvoidance;
+	for (const agent of simulation.agents) {
+		if (!agent || !agent.debugAvoidance || !agent.debugAvoidance.debugSpots) continue;
+		const { debugSpots, bestHidingSpot } = agent.debugAvoidance;
 
-	for (const spot of debugSpots) {
-		const isBest = bestHidingSpot && spot.position.x === bestHidingSpot.x && spot.position.y === bestHidingSpot.y;
-		ctx.beginPath();
-		ctx.arc(spot.position.x, spot.position.y, isBest ? 6 : 4, 0, Math.PI * 2);
-		ctx.fillStyle = isBest ? C.spotBest : C.spotNormal;
-		ctx.fill();
+		for (const spot of debugSpots) {
+			const isBest = bestHidingSpot && spot.position.x === bestHidingSpot.x && spot.position.y === bestHidingSpot.y;
+			ctx.beginPath();
+			ctx.arc(spot.position.x, spot.position.y, isBest ? 6 : 4, 0, Math.PI * 2);
+			ctx.fillStyle = isBest ? C.spotBest : C.spotNormal;
+			ctx.fill();
 
-		// Draw line from obstacle to spot
-		ctx.beginPath();
-		ctx.moveTo(spot.obstacle.position.x, spot.obstacle.position.y);
-		ctx.lineTo(spot.position.x, spot.position.y);
-		ctx.strokeStyle = isBest ? C.spotBest : C.spotNormal;
-		ctx.setLineDash([2, 4]);
-		ctx.lineWidth = isBest ? 2 : 1;
-		ctx.stroke();
-		ctx.setLineDash([]);
+			// Draw line from obstacle to spot
+			ctx.beginPath();
+			ctx.moveTo(spot.obstacle.position.x, spot.obstacle.position.y);
+			ctx.lineTo(spot.position.x, spot.position.y);
+			ctx.strokeStyle = isBest ? C.spotBest : C.spotNormal;
+			ctx.setLineDash([2, 4]);
+			ctx.lineWidth = isBest ? 2 : 1;
+			ctx.stroke();
+			ctx.setLineDash([]);
+		}
 	}
 }
 
 function drawSightlines() {
-	const agent = simulation.agent;
-	const hunter = simulation.hunter;
-	if (!agent || !hunter) return;
+	if (!simulation.agents || !simulation.hunters) return;
 
-	// Draw line between hunter and agent
-	ctx.beginPath();
-	ctx.moveTo(hunter.position.x, hunter.position.y);
-	ctx.lineTo(agent.position.x, agent.position.y);
-	ctx.strokeStyle = C.sightline;
-	ctx.setLineDash([4, 4]);
-	ctx.lineWidth = 1.5;
-	ctx.stroke();
-	ctx.setLineDash([]);
+	for (const hunter of simulation.hunters) {
+		const radius = Number(params.hunterVisionRadius);
+		for (const agent of simulation.agents) {
+			const dx = hunter.position.x - agent.position.x;
+			const dy = hunter.position.y - agent.position.y;
+			const d = Math.sqrt(dx * dx + dy * dy);
+			if (d < radius && hasLineOfSight(hunter.position, agent.position, simulation.obstacles, radius)) {
+				ctx.beginPath();
+				ctx.moveTo(hunter.position.x, hunter.position.y);
+				ctx.lineTo(agent.position.x, agent.position.y);
+				ctx.strokeStyle = C.sightline;
+				ctx.setLineDash([4, 4]);
+				ctx.lineWidth = 1.5;
+				ctx.stroke();
+				ctx.setLineDash([]);
+			}
+		}
+	}
+}
+
+function drawVisionRadii() {
+	if (showHunterVision && simulation.hunters) {
+		for (const hunter of simulation.hunters) {
+			ctx.beginPath();
+			ctx.arc(hunter.position.x, hunter.position.y, Number(params.hunterVisionRadius), 0, Math.PI * 2);
+			ctx.strokeStyle = "rgba(239, 68, 68, 0.2)";
+			ctx.lineWidth = 1;
+			ctx.setLineDash([5, 5]);
+			ctx.stroke();
+			ctx.setLineDash([]);
+		}
+	}
+	if (showAgentVision && simulation.agents) {
+		for (const agent of simulation.agents) {
+			ctx.beginPath();
+			ctx.arc(agent.position.x, agent.position.y, Number(params.agentVisionRadius), 0, Math.PI * 2);
+			ctx.strokeStyle = "rgba(59, 130, 246, 0.2)";
+			ctx.lineWidth = 1;
+			ctx.setLineDash([5, 5]);
+			ctx.stroke();
+			ctx.setLineDash([]);
+		}
+	}
 }
 
 function drawArrow(x1, y1, x2, y2, color, width2, label) {
@@ -280,53 +320,56 @@ function drawArrow(x1, y1, x2, y2, color, width2, label) {
 }
 
 function drawTrail() {
-	const agent = simulation.agent;
-	if (!agent || agent.trail.length < 2) return;
-	ctx.beginPath();
-	ctx.moveTo(agent.trail[0].x, agent.trail[0].y);
-	for (let i = 1; i < agent.trail.length; i++) {
-		ctx.lineTo(agent.trail[i].x, agent.trail[i].y);
+	if (!simulation.agents) return;
+	for (const agent of simulation.agents) {
+		if (agent.trail.length < 2) continue;
+		ctx.beginPath();
+		ctx.moveTo(agent.trail[0].x, agent.trail[0].y);
+		for (let i = 1; i < agent.trail.length; i++) {
+			ctx.lineTo(agent.trail[i].x, agent.trail[i].y);
+		}
+		ctx.strokeStyle = C.trail;
+		ctx.lineWidth = 1.5;
+		ctx.stroke();
 	}
-	ctx.strokeStyle = C.trail;
-	ctx.lineWidth = 1.5;
-	ctx.stroke();
 }
 
 function drawAgent() {
-	const agent = simulation.agent;
-	if (!agent) return;
-	const { x, y } = agent.position;
-	const spd = magnitude(agent.velocity);
-	const ang = spd > 0.5 ? Math.atan2(agent.velocity.y, agent.velocity.x) : 0;
-	const r = agent.boundingRadius;
+	if (!simulation.agents) return;
+	for (const agent of simulation.agents) {
+		const { x, y } = agent.position;
+		const spd = magnitude(agent.velocity);
+		const ang = spd > 0.5 ? Math.atan2(agent.velocity.y, agent.velocity.x) : 0;
+		const r = agent.boundingRadius;
 
-	// Glow
-	ctx.beginPath();
-	ctx.arc(x, y, r + 6, 0, Math.PI * 2);
-	ctx.fillStyle = C.agentGlow;
-	ctx.fill();
+		// Glow
+		ctx.beginPath();
+		ctx.arc(x, y, r + 6, 0, Math.PI * 2);
+		ctx.fillStyle = C.agentGlow;
+		ctx.fill();
 
-	// Body (triangle facing heading)
-	ctx.save();
-	ctx.translate(x, y);
-	ctx.rotate(ang);
-	ctx.beginPath();
-	ctx.moveTo(r, 0);
-	ctx.lineTo(-r, r * 0.6);
-	ctx.lineTo(-r * 0.5, 0);
-	ctx.lineTo(-r, -r * 0.6);
-	ctx.closePath();
-	ctx.fillStyle = C.agentFill;
-	ctx.strokeStyle = C.agentBorder;
-	ctx.lineWidth = 2;
-	ctx.fill();
-	ctx.stroke();
-	ctx.restore();
+		// Body (triangle facing heading)
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.rotate(ang);
+		ctx.beginPath();
+		ctx.moveTo(r, 0);
+		ctx.lineTo(-r, r * 0.6);
+		ctx.lineTo(-r * 0.5, 0);
+		ctx.lineTo(-r, -r * 0.6);
+		ctx.closePath();
+		ctx.fillStyle = C.agentFill;
+		ctx.strokeStyle = C.agentBorder;
+		ctx.lineWidth = 2;
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
 
-	// Velocity vector
-	if (spd > 1) {
-		const scale2 = 0.4;
-		drawArrow(x, y, x + agent.velocity.x * scale2, y + agent.velocity.y * scale2, C.velocity, 2, null);
+		// Velocity vector
+		if (spd > 1) {
+			const scale2 = 0.4;
+			drawArrow(x, y, x + agent.velocity.x * scale2, y + agent.velocity.y * scale2, C.velocity, 2, null);
+		}
 	}
 }
 
@@ -348,6 +391,22 @@ function drawGhost() {
 		ctx.lineWidth = 1.5;
 		ctx.fill();
 		ctx.stroke();
+	} else if (interactionMode === "agent") {
+		ctx.beginPath();
+		ctx.arc(ghostPos.x, ghostPos.y, 12, 0, Math.PI * 2);
+		ctx.fillStyle = "rgba(59,130,246,0.3)";
+		ctx.strokeStyle = "#3b82f6";
+		ctx.lineWidth = 1.5;
+		ctx.fill();
+		ctx.stroke();
+	} else if (interactionMode === "hunter") {
+		ctx.beginPath();
+		ctx.arc(ghostPos.x, ghostPos.y, 16, 0, Math.PI * 2);
+		ctx.fillStyle = "rgba(239,68,68,0.3)";
+		ctx.strokeStyle = "#ef4444";
+		ctx.lineWidth = 1.5;
+		ctx.fill();
+		ctx.stroke();
 	}
 }
 
@@ -363,6 +422,7 @@ function draw() {
 	if (showSightlines) drawSightlines();
 	drawObstacles();
 	if (showHidingSpots) drawHidingSpots();
+	drawVisionRadii();
 	drawHunter();
 	drawAgent();
 	drawGhost();

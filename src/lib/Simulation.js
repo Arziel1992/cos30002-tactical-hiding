@@ -22,6 +22,27 @@ function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y }; }
 function scale(v, s) { return { x: v.x * s, y: v.y * s }; }
 function dot(a, b) { return a.x * b.x + a.y * b.y; }
 
+function distToSegmentSquared(p, v, w) {
+	const l2 = (v.x - w.x) * (v.x - w.x) + (v.y - w.y) * (v.y - w.y);
+	if (l2 === 0) return (p.x - v.x) * (p.x - v.x) + (p.y - v.y) * (p.y - v.y);
+	let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+	t = Math.max(0, Math.min(1, t));
+	return (p.x - (v.x + t * (w.x - v.x))) ** 2 + (p.y - (v.y + t * (w.y - v.y))) ** 2;
+}
+
+export function hasLineOfSight(posA, posB, obstacles, visionRadius = Infinity) {
+	const d = magnitude(sub(posA, posB));
+	if (d > visionRadius) return false;
+
+	for (const obs of obstacles) {
+		const distSq = distToSegmentSquared(obs.position, posA, posB);
+		if (distSq < obs.radius * obs.radius) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // ─── Local-Space Transform Helpers ──────────────────────────────────────────
 
 /**
@@ -47,6 +68,46 @@ export function vectorToWorldSpace(localVec, heading, side) {
 }
 
 // ─── Steering Behaviours ─────────────────────────────────────────────────────
+
+export function calculateObstacleAvoidance(agent, obstacles, boxLen, params) {
+	const boundingRadius = params.boundingRadius ?? 12;
+	const brakingWeight = params.brakingWeight ?? 0.2;
+	const lateralMultiplier = params.lateralMultiplier ?? 12.0;
+
+	const heading = normalise(agent.velocity);
+	const side = { x: -heading.y, y: heading.x };
+
+	let closestDist = Number.POSITIVE_INFINITY;
+	let closestObs = null;
+	let closestLocal = null;
+
+	for (const obs of obstacles) {
+		const local = pointToLocalSpace(obs.position, agent.position, heading, side);
+
+		if (local.x < 0) continue;
+		if (local.x > boxLen + obs.radius + boundingRadius) continue;
+
+		const expandedRadius = obs.radius + boundingRadius;
+		if (Math.abs(local.y) >= expandedRadius) continue;
+
+		const intersectX = local.x - Math.sqrt(expandedRadius * expandedRadius - local.y * local.y);
+
+		if (intersectX < closestDist) {
+			closestDist = intersectX;
+			closestObs = obs;
+			closestLocal = local;
+		}
+	}
+
+	if (!closestObs) return { x: 0, y: 0 };
+
+	const expandedRadius = closestObs.radius + boundingRadius;
+	const brakingMag = (expandedRadius - closestLocal.x) * brakingWeight;
+	const lateralSign = closestLocal.y < 0 ? 1 : -1;
+	const lateralMag = (expandedRadius - Math.abs(closestLocal.y)) * lateralMultiplier * lateralSign;
+
+	return vectorToWorldSpace({ x: Math.abs(brakingMag), y: Math.abs(lateralMag) * lateralSign }, heading, side);
+}
 
 export function calculateArrive(position, target, velocity, maxSpeed, deceleration = 0.3) {
 	const delta = sub(target, position);
@@ -141,6 +202,19 @@ export function calculateTacticalHiding(agent, hunter, obstacles, params) {
 	return { force: calculateEvade(agent.position, hunter.position, agent.velocity, agent.maxSpeed), debug };
 }
 
+export function resolveCollisions(entity, obstacles) {
+	for (const obs of obstacles) {
+		const delta = sub(entity.position, obs.position);
+		const dist = magnitude(delta);
+		const minDist = obs.radius + entity.boundingRadius;
+		if (dist < minDist && dist > 1e-5) {
+			const pushDist = minDist - dist;
+			const pushDir = scale(delta, 1 / dist);
+			entity.position = add(entity.position, scale(pushDir, pushDist));
+		}
+	}
+}
+
 /**
  * Seek steering: drives agent toward a target position.
  */
@@ -192,6 +266,10 @@ export class Agent {
 		this.wanderAngle = Math.random() * Math.PI * 2;
 		this.trail = [];
 		this.debugAvoidance = null;
+		
+		// Hunter memory
+		this.lastSeenTargetPos = null;
+		this.timeSinceSeen = Number.POSITIVE_INFINITY;
 	}
 }
 
@@ -208,24 +286,36 @@ export class Obstacle {
 
 export class TacticalHidingSim {
 	constructor() {
-		this.agent = null;
-		this.hunter = null;
+		this.agents = [];
+		this.hunters = [];
 		this.obstacles = [];
 		this.hunterTarget = null;
 	}
 
 	initialise(canvasWidth, canvasHeight) {
-		this.agent = new Agent(canvasWidth * 0.3, canvasHeight * 0.3);
-		this.agent.maxSpeed = 100;
-		this.hunter = new Agent(canvasWidth * 0.7, canvasHeight * 0.7);
-		this.hunter.maxSpeed = 80;
-		this.hunter.velocity = { x: -60, y: 0 };
+		this.agents = [new Agent(canvasWidth * 0.3, canvasHeight * 0.3)];
+		this.agents[0].maxSpeed = 100;
+		this.hunters = [new Agent(canvasWidth * 0.7, canvasHeight * 0.7)];
+		this.hunters[0].maxSpeed = 80;
+		this.hunters[0].velocity = { x: -60, y: 0 };
 		this.obstacles = [];
 		this.hunterTarget = null;
 	}
 
 	reset(canvasWidth, canvasHeight) {
 		this.initialise(canvasWidth, canvasHeight);
+	}
+
+	addAgent(x, y) {
+		const a = new Agent(x, y);
+		a.maxSpeed = 100;
+		this.agents.push(a);
+	}
+
+	addHunter(x, y) {
+		const h = new Agent(x, y);
+		h.maxSpeed = 80;
+		this.hunters.push(h);
 	}
 
 	addObstacle(x, y, radius) {
@@ -248,11 +338,7 @@ export class TacticalHidingSim {
 	clearTarget() { this.hunterTarget = null; }
 
 	update(params, canvasSize, telemetry) {
-		if (!this.agent || !this.hunter) return;
-		const agent = this.agent;
-		const hunter = this.hunter;
 		const dt = 1 / 60;
-
 		const maxSpeed = Number(params.maxSpeed);
 		const maxForce = Number(params.maxForce);
 		const boundingRadius = Number(params.boundingRadius);
@@ -260,47 +346,14 @@ export class TacticalHidingSim {
 		const weightWander = Number(params.weightWander ?? 1.0);
 		const showTrail = params.showTrail;
 		const torus = params.torusMode;
-		
-		agent.boundingRadius = boundingRadius;
-		hunter.boundingRadius = 16;
+		const hunterVisionRadius = Number(params.hunterVisionRadius ?? 400);
+		const agentVisionRadius = Number(params.agentVisionRadius ?? 400);
+		const memoryTime = 5.0; // 5 seconds of memory
 
-		// ── Hunter AI ────────────────────────────────────────────
-		let hunterForce = { x: 0, y: 0 };
-		if (this.hunterTarget) {
-			hunterForce = calculateSeek(hunter.position, this.hunterTarget, hunter.velocity, hunter.maxSpeed);
-		} else {
-			hunterForce = calculateWander(hunter, hunter.maxSpeed);
-		}
-		if (!torus) hunterForce = add(hunterForce, calculateEdgeAvoidance(hunter.position, canvasSize.width, canvasSize.height));
-		hunter.velocity = truncate(add(hunter.velocity, scale(truncate(hunterForce, hunter.maxForce), dt)), hunter.maxSpeed);
-		hunter.position = add(hunter.position, scale(hunter.velocity, dt));
+		let totalHidingSpots = 0;
+		let activePhase = 0;
 
-		// ── Agent AI ────────────────────────────────────────────
-		let agentForce = { x: 0, y: 0 };
-
-		const { force: hidingForce, debug } = calculateTacticalHiding(agent, hunter, this.obstacles, params);
-		agent.debugAvoidance = debug;
-
-		agentForce = add(agentForce, scale(hidingForce, weightHiding));
-
-		if (!torus) {
-			const edge = calculateEdgeAvoidance(agent.position, canvasSize.width, canvasSize.height);
-			agentForce = add(agentForce, edge);
-		}
-
-		// ── Integrate ────────────────────────────────────────────────
-		const steering = truncate(agentForce, maxForce);
-		agent.velocity = truncate(add(agent.velocity, scale(steering, dt)), maxSpeed);
-
-		if (magnitude(agent.velocity) < 5 && !agent.debugAvoidance.bestHidingSpot) {
-			const heading = normalise(agent.velocity.x === 0 && agent.velocity.y === 0
-				? { x: 1, y: 0 } : agent.velocity);
-			agent.velocity = scale(heading, 20);
-		}
-
-		agent.position = add(agent.position, scale(agent.velocity, dt));
-
-		// ── Boundary ─────────────────────────────────────
+		// ── Boundary wrap helper
 		const handleWrap = (ent) => {
 			if (torus) {
 				const margin = 40;
@@ -315,24 +368,129 @@ export class TacticalHidingSim {
 				else if (ent.position.y > canvasSize.height) { ent.position.y = canvasSize.height; ent.velocity.y = -Math.abs(ent.velocity.y); }
 			}
 		};
-		handleWrap(agent);
-		handleWrap(hunter);
+
+		// ── Update Hunters
+		for (const hunter of this.hunters) {
+			hunter.boundingRadius = 16;
+			hunter.timeSinceSeen += dt;
+
+			// Find closest visible agent
+			let closestAgent = null;
+			let closestDist = hunterVisionRadius;
+			for (const agent of this.agents) {
+				const d = magnitude(sub(agent.position, hunter.position));
+				if (d < closestDist && hasLineOfSight(hunter.position, agent.position, this.obstacles, hunterVisionRadius)) {
+					closestDist = d;
+					closestAgent = agent;
+				}
+			}
+
+			let hunterForce = { x: 0, y: 0 };
+
+			if (closestAgent) {
+				// Actively hunt
+				hunter.lastSeenTargetPos = closestAgent.position;
+				hunter.timeSinceSeen = 0;
+				hunterForce = calculateSeek(hunter.position, closestAgent.position, hunter.velocity, hunter.maxSpeed);
+			} else if (this.hunterTarget) {
+				hunterForce = calculateSeek(hunter.position, this.hunterTarget, hunter.velocity, hunter.maxSpeed);
+			} else if (hunter.timeSinceSeen < memoryTime && hunter.lastSeenTargetPos) {
+				// Investigate last known location
+				const d = magnitude(sub(hunter.position, hunter.lastSeenTargetPos));
+				if (d > 20) {
+					hunterForce = calculateArrive(hunter.position, hunter.lastSeenTargetPos, hunter.velocity, hunter.maxSpeed, 0.5);
+				} else {
+					hunterForce = calculateWander(hunter, hunter.maxSpeed);
+				}
+			} else {
+				// Wander
+				hunterForce = calculateWander(hunter, hunter.maxSpeed);
+			}
+
+			// Add obstacle avoidance for hunters too!
+			const boxLen = 20 + (magnitude(hunter.velocity) / hunter.maxSpeed) * 40;
+			const hAvoidForce = calculateObstacleAvoidance(hunter, this.obstacles, boxLen, { boundingRadius: 16, brakingWeight: 0.2, lateralMultiplier: 8.0 });
+			hunterForce = add(hunterForce, scale(hAvoidForce, 15.0));
+
+			if (!torus) hunterForce = add(hunterForce, calculateEdgeAvoidance(hunter.position, canvasSize.width, canvasSize.height));
+			
+			hunter.velocity = truncate(add(hunter.velocity, scale(truncate(hunterForce, hunter.maxForce), dt)), hunter.maxSpeed);
+			hunter.position = add(hunter.position, scale(hunter.velocity, dt));
+			
+			resolveCollisions(hunter, this.obstacles);
+			handleWrap(hunter);
+		}
+
+		// ── Update Agents
+		for (const agent of this.agents) {
+			agent.boundingRadius = boundingRadius;
+			let agentForce = { x: 0, y: 0 };
+
+			// Find closest visible hunter
+			let closestHunter = null;
+			let closestHDist = agentVisionRadius;
+			for (const hunter of this.hunters) {
+				const d = magnitude(sub(hunter.position, agent.position));
+				if (d < closestHDist && hasLineOfSight(agent.position, hunter.position, this.obstacles, agentVisionRadius)) {
+					closestHDist = d;
+					closestHunter = hunter;
+				}
+			}
+
+			if (closestHunter) {
+				const { force: hidingForce, debug } = calculateTacticalHiding(agent, closestHunter, this.obstacles, params);
+				agent.debugAvoidance = debug;
+				agentForce = add(agentForce, scale(hidingForce, weightHiding));
+				totalHidingSpots += debug.debugSpots.length;
+				activePhase = debug.phase;
+			} else {
+				agent.debugAvoidance = null;
+				// Wander safely
+				agentForce = add(agentForce, scale(calculateWander(agent, maxSpeed), weightWander));
+				activePhase = 0; // Clear
+			}
+
+			// Add obstacle avoidance
+			const boxLen = 20 + (magnitude(agent.velocity) / agent.maxSpeed) * 40;
+			const aAvoidForce = calculateObstacleAvoidance(agent, this.obstacles, boxLen, { boundingRadius, brakingWeight: 0.2, lateralMultiplier: 12.0 });
+			agentForce = add(agentForce, scale(aAvoidForce, 10.0)); // Weight avoidance
+
+			if (!torus) {
+				const edge = calculateEdgeAvoidance(agent.position, canvasSize.width, canvasSize.height);
+				agentForce = add(agentForce, edge);
+			}
+
+			const steering = truncate(agentForce, maxForce);
+			agent.velocity = truncate(add(agent.velocity, scale(steering, dt)), maxSpeed);
+
+			if (magnitude(agent.velocity) < 5 && agent.debugAvoidance && !agent.debugAvoidance.bestHidingSpot) {
+				const heading = normalise(agent.velocity.x === 0 && agent.velocity.y === 0 ? { x: 1, y: 0 } : agent.velocity);
+				agent.velocity = scale(heading, 20);
+			}
+
+			agent.position = add(agent.position, scale(agent.velocity, dt));
+			
+			resolveCollisions(agent, this.obstacles);
+			handleWrap(agent);
+		}
 
 		// ── Trail ────────────────────────────────────────────────────
-		if (showTrail) {
-			agent.trail.push({ x: agent.position.x, y: agent.position.y });
-			if (agent.trail.length > 200) agent.trail.shift();
-		} else {
-			agent.trail = [];
+		for (const agent of this.agents) {
+			if (showTrail) {
+				agent.trail.push({ x: agent.position.x, y: agent.position.y });
+				if (agent.trail.length > 200) agent.trail.shift();
+			} else {
+				agent.trail = [];
+			}
 		}
 
 		// ── Telemetry ────────────────────────────────────────────────
-		const spd = magnitude(agent.velocity);
+		const spd = this.agents.length > 0 ? magnitude(this.agents[0].velocity) : 0;
 		telemetry.speed = spd;
-		telemetry.hunterSpeed = magnitude(hunter.velocity);
+		telemetry.hunterSpeed = this.hunters.length > 0 ? magnitude(this.hunters[0].velocity) : 0;
 		telemetry.obstacleCount = this.obstacles.length;
 		telemetry.hasTarget = this.hunterTarget !== null;
-		telemetry.activePhase = debug.phase;
-		telemetry.hidingSpots = debug.debugSpots.length;
+		telemetry.activePhase = activePhase;
+		telemetry.hidingSpots = totalHidingSpots;
 	}
 }

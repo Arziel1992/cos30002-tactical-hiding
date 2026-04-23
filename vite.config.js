@@ -3,5 +3,5 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
 	plugins: [svelte()],
-	base: "/cos30002-obstacle-avoidance/",
+	base: "/cos30002-tactical-hiding/",
 });
