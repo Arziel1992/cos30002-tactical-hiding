@@ -1,45 +1,36 @@
-# Local Space Obstacle Avoidance (COS30002)
+# Tactical Hiding & Perception (COS30002)
 
-Interactive visualisation of Craig Reynolds' local-space obstacle avoidance algorithm for COS30002 Artificial Intelligence for Games. This tool demonstrates how modern games translate spatial geometry into agent-relative coordinates to optimize collision detection and steering behaviors.
+Interactive educational simulation demonstrating tactical hiding behaviors, line-of-sight perception, and cognitive biasing for COS30002 Artificial Intelligence for Games. This tool explores how autonomous agents can utilize environmental geometry to evade threats by calculating optimal hiding spots and managing sensory memory.
 
 ## 🚀 Key Features
 
-- **Svelte 5 + HTML5 Canvas:** High-performance local-space transformation visualization.
-- **Five-phase Reynolds algorithm:** Detailed breakdown and execution of:
-    - Phase 1: Local Space Transform
-    - Phase 2: Forward Culling
-    - Phase 3: Point Simplification (Expanded Bounds)
-    - Phase 4: Geometric Intersection Testing
-    - Phase 5: Force Generation
-- **Dynamic Visual Overlays:**
-    - **Detection Box:** Projected rectangular predictive vision cone ahead of the agent.
-    - **Local Axes:** Heading (+X, blue) and Side (+Y, green) vector decomposition.
-    - **Force Breakdown:** Visual vectors for braking (red), lateral (purple), and resultant forces (orange).
-- **Behavior Blending:** Seamless toggling between Target Seek (when clicked) and Erratic Wander mode (when idle).
-- **Interactive Simulation:** Click to add/remove obstacles and target nodes to test dynamic pathing real-time.
+- **Geometric Hiding Logic:** Real-time calculation of optimal "shadow" positions behind obstacles relative to dynamic hunters.
+- **Cognitive Dot-Product Biasing:** Implements tactical penalties for hiding spots that lie directly in a hunter's forward heading, forcing agents to find "smarter" cover.
+- **Advanced Perception System:** Implements finite Line of Sight (LoS) with geometric occlusion—hunters can only pursue agents they can physically see.
+- **Temporal Memory Buffer:** Hunters retain the "last known position" of hidden agents, allowing for realistic investigation behaviors before returning to patrol.
+- **Kinematic Size Check:** Optional realistic occlusion toggle that validates if an obstacle is physically large enough to cover the agent's bounding radius.
+- **Multi-Entity Sandbox:** Interactive mode for placing multiple agents, aggressive hunters, and obstacles to test complex emergence.
 
 ## 📐 Mathematical Models
 
-### Local Space Transform
-$$\text{local.x} = \vec{\text{heading}} \cdot (\vec{\text{obstacle}} - \vec{\text{agent}})$$
-$$\text{local.y} = \vec{\text{side}} \cdot (\vec{\text{obstacle}} - \vec{\text{agent}})$$
-Transforms global 2D world coordinates into the agent's relative coordinate frame.
+### Hiding Spot Calculation
+$$P_{spot} = P_{obs} + \vec{n}_{h \to o} \times (r_{obs} + r_{agent} + k_{clear})$$
+Calculates the optimal coordinate behind an obstacle by projecting along the normal vector from the hunter to the obstacle center, adjusted for physical radii and safety clearance.
 
-### Geometric Intersection (Line-Circle)
-$$\text{intersect\_x} = \text{local.x} - \sqrt{\text{expanded\_r}^2 - \text{local.y}^2}$$
-Determines the exact point on the agent's forward axis where it penetrates the obstacle's bounding sphere, solving via the Pythagorean theorem.
+### Tactical Dot-Product Penalty
+$$D_{biased} = D_{agent \to spot} \times (1 + \max(0, \vec{v}_{h \to spot} \cdot \vec{v}_{h_{heading}}) \times w_{penalty})$$
+Penalizes hiding spots that are directly in the hunter's field of view. This biasing ensures agents prioritize spots that are tactically sound rather than just geographically close.
 
-### Force Generation
-$$\vec{F}_{\text{brake}} = (\text{radius} - \text{local.x}) \times \text{weight}_{\text{brake}}$$
-$$\vec{F}_{\text{lateral}} = (\text{radius} - |\text{local.y}|) \times \text{weight}_{\text{lat}} \times \text{sign}$$
-Generates proportional push-back forces to avoid the specific intersection geometry.
+### Line of Sight (LoS) Occlusion
+$$dist(P_{obs}, \overline{P_{observer}P_{target}}) < r_{obs}$$
+A segment-to-point distance test used to determine if an obstacle intersects the vision ray between two entities, enabling realistic sensory occlusion.
 
 ## 💻 Tech Stack
 
 - **Framework:** [Svelte 5](https://svelte.dev/)
 - **Build Tool:** [Vite](https://vitejs.dev/)
 - **Rendering:** HTML5 Canvas API
-- **Styling:** CSS variables via Master Template (`app.css`)
+- **Styling:** Vanilla CSS + Svelte Transitions
 
 ## 👨‍🏫 Local Development & Deployment
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.04.23-2255
+
+- Major Refactor: Transitioned tool to **Tactical Hiding & Perception**
+- Implemented Multi-Entity support for concurrent Agents and Hunters
+- Added aggressive Hunter AI with **Line of Sight (LoS)** and **Memory Buffers**
+- Implemented **Tactical Hiding** steering with geometric spot calculation and cognitive dot-product biasing
+- Integrated Reynolds-style **Obstacle Avoidance** for all entities
+- Added interactive **Vision Radius** sliders and visualization toggles
+- Updated **Glossary** and **Sidebar** documentation for tactical hiding concepts
+- Fixed LaTeX formula rendering in `README.md` for GitHub compatibility
+
 ## 2026.04.22-2337
 
 - Initial release of the Local Space Obstacle Avoidance interactive tool
