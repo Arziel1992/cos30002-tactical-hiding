@@ -191,7 +191,7 @@ export function calculateTacticalHiding(agent, hunter, obstacles, params) {
 	const debug = {
 		bestHidingSpot,
 		debugSpots,
-		phase: bestHidingSpot ? 5 : 7 // 5 = execute, 7 = fallback
+		phase: bestHidingSpot ? 1 : 2 // 1 = Hiding, 2 = Evading
 	};
 
 	if (bestHidingSpot) {

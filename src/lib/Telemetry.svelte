@@ -2,15 +2,15 @@
 let { telemetry } = $props();
 
 const phaseLabels = {
-	0: "Waiting...",
-	5: "Phase 5: Spot Located (Arrive)",
-	7: "Phase 7: Fallback (Evade)"
+	0: "Patrol / Wander",
+	1: "Tactical Hiding (Arrive)",
+	2: "Emergency Evade (Panic)"
 };
 
 const phaseColors = {
 	0: "#10b981",
-	5: "#3b82f6",
-	7: "#ef4444"
+	1: "#3b82f6",
+	2: "#ef4444"
 };
 </script>
 
@@ -35,7 +35,7 @@ const phaseColors = {
     </div>
   </div>
 
-  <div class="telem-header" style="margin-top: 1rem;">Active Algorithm Phase</div>
+  <div class="telem-header" style="margin-top: 1rem;">Current Agent Behavior</div>
   <div class="phase-badge" style="background: {phaseColors[telemetry.activePhase] || '#333'}22; border-color: {phaseColors[telemetry.activePhase] || '#333'}66; color: {phaseColors[telemetry.activePhase] || '#333'}">
     {phaseLabels[telemetry.activePhase] ?? phaseLabels[0]}
   </div>

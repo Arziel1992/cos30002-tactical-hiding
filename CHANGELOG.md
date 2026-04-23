@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.04.23-2305
+
+- Refactored Telemetry to display "Current Agent Behavior" instead of "Algorithm Phase"
+- Implemented state-based labeling for Agent behavior: Patrol, Hiding, and Evade
+
 ## 2026.04.23-2255
 
 - Major Refactor: Transitioned tool to **Tactical Hiding & Perception**
